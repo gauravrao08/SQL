@@ -1,0 +1,54 @@
+ec2 slave for RDS for only one database
+
+on ec2 slave mysql my.cnf
+```
+server-id               = 101
+relay-log               = mysql-relay-bin
+log-slave-updates = 1
+read-only               = 1
+slow_query_log = 1
+slow_query_log_file = /var/log/ip-mysql-slow.log
+slave-skip-errors               = 1062,1032,1022
+replicate-do-db=partner_portal
+#replicate-do-db=db_name
+```
+
+RDS master
+step1 :  call mysql.rds_set_configuration('binlog retention hours', 24);
+
+#note: Save the output of below command; 
+step 2: show master status ;
++----------------------------+----------+--------------+------------------+
+| File                       | Position | Binlog_Do_DB | Binlog_Ignore_DB |
++----------------------------+----------+--------------+------------------+
+| mysql-bin-changelog.158522 |   129639 |              |                  |
++----------------------------+----------+--------------+------------------+
+
+mysqldump -h middlewareslave.c8le3siaf5jx.ap-south-1.rds.amazonaws.com --single-transaction --routines --triggers --events -u girnarinsurance -p --databases partner_portal | gzip > partner_portal_dump.mysql.gz
+
+restore dump on slave ec2 machine
+
+RDS master
+CREATE USER 'replicant'@'%' IDENTIFIED BY 'password@187';
+GRANT REPLICATION SLAVE ON *.* TO 'replicant'@'%';
+
+
+ec2 slave inside mysql:---
+1. CHANGE MASTER TO MASTER_HOST='RDS-master-hostname-or-IP', MASTER_USER='replicant', MASTER_PASSWORD='password@187', MASTER_LOG_FILE='mysql-bin-changelog.158522', MASTER_LOG_POS=129639 ;
+
+# NOTE: MASTER_LOG_FILE and MASTER_LOG_POS need to change from the above save output from master RDS
+2. SLAVE START;
+3. show slave status \G
+#check "Seconds_Behind_Master" it will decrease if you will run this command multiple time
+
+
+NOTE: if you are getting error of TIME zone the run the below command on slave server NOT on MySql.
+4. mysql_tzinfo_to_sql /usr/share/zoneinfo | mysql -u root mysql -p
+
+show slave status \G
+Seconds_Behind_Master: 0
+
+
+
+
+
