@@ -24,7 +24,7 @@ step 2: show master status ;
 | mysql-bin-changelog.158522 |   129639 |              |                  |
 +----------------------------+----------+--------------+------------------+
 
-mysqldump -h middlewareslave.c8le3siaf5jx.ap-south-1.rds.amazonaws.com --single-transaction --routines --triggers --events -u girnarinsurance -p --databases partner_portal | gzip > partner_portal_dump.mysql.gz
+mysqldump -h RDS-hostname --single-transaction --routines --triggers --events -u user_name -p --databases db_name | gzip > db_name_dump.mysql.gz
 
 restore dump on slave ec2 machine
 
